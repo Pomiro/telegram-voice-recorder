@@ -70,7 +70,7 @@ function initializeApp(webapp) {
     }
 
     // Function to transcribe audio using OpenAI Whisper API
-    async function transcribeAudio(audioBlob, formData) {
+    async function transcribeAudio(formData) {
         const apiKey = getApiKey();
         if (!apiKey) return null;
 
@@ -113,9 +113,10 @@ function initializeApp(webapp) {
             sendButton.textContent = 'Send to Chat';
             sendButton.className = 'send-button';
             sendButton.onclick = () => {
-                webapp.sendData(text);
+                webapp.sendData(JSON.stringify({ transcription: text }));
                 sendButton.disabled = true;
                 sendButton.textContent = 'Sent';
+                webapp.close(); // Optionally close the WebApp after sending
             };
             recordingItem.appendChild(sendButton);
         }
@@ -151,7 +152,7 @@ function initializeApp(webapp) {
         } else if (MediaRecorder.isTypeSupported('audio/aac')) {
             options.mimeType = 'audio/aac';
         }
-        
+
         try {
             mediaRecorder = new MediaRecorder(stream, options);
         } catch (e) {
@@ -169,24 +170,24 @@ function initializeApp(webapp) {
         mediaRecorder.onstop = async () => {
             try {
                 console.log('Recording stopped, processing audio...');
-                
+
                 // Validate audio chunks
                 if (!audioChunks.length) {
                     throw new Error('No audio data recorded');
                 }
-                
+
                 // Use the same MIME type as the MediaRecorder
                 const blobType = isIOS ? 'audio/mp4' : (mediaRecorder.mimeType || 'audio/webm');
                 const audioBlob = new Blob(audioChunks, { type: blobType });
                 console.log('Audio blob created:', audioBlob.size, 'bytes');
-                
+
                 if (audioBlob.size === 0) {
                     throw new Error('Audio recording is empty');
                 }
-                
+
                 const audioUrl = URL.createObjectURL(audioBlob);
                 const recordingItem = addRecordingToList(audioUrl);
-                
+
                 // Show loading state
                 const transcriptionDiv = document.createElement('div');
                 transcriptionDiv.className = 'transcription';
@@ -207,9 +208,9 @@ function initializeApp(webapp) {
                 });
 
                 // Transcribe the audio
-                const transcribedText = await transcribeAudio(audioBlob, formData);
+                const transcribedText = await transcribeAudio(formData);
                 console.log('Transcription result:', transcribedText);
-                
+
                 if (transcribedText) {
                     transcriptionDiv.textContent = transcribedText;
                     sendTranscriptionToTelegram(transcribedText, recordingItem);
@@ -223,7 +224,7 @@ function initializeApp(webapp) {
                     audioChunksLength: audioChunks.length,
                     totalSize: audioChunks.reduce((size, chunk) => size + chunk.size, 0)
                 });
-                const transcriptionDiv = document.querySelector('.transcription');
+                const transcriptionDiv = recordingItem.querySelector('.transcription');
                 if (transcriptionDiv) {
                     transcriptionDiv.textContent = `Error: ${error.message}`;
                     transcriptionDiv.classList.add('error');
@@ -292,14 +293,16 @@ function initializeApp(webapp) {
         downloadButton.onclick = () => {
             const link = document.createElement('a');
             link.href = audioUrl;
-            link.download = `recording-${new Date().toISOString()}.wav`;
+            link.download = `recording-${new Date().toISOString()}.${isIOS ? 'mp4' : (mediaRecorder.mimeType || 'webm').split('/')[1]}`;
+            document.body.appendChild(link);
             link.click();
+            document.body.removeChild(link);
         };
 
         recordingItem.appendChild(audio);
         recordingItem.appendChild(downloadButton);
         recordingsList.insertBefore(recordingItem, recordingsList.firstChild);
-        
+
         return recordingItem;
     }
 
