@@ -96,10 +96,20 @@ function setupMediaRecorder(stream) {
         const audioUrl = URL.createObjectURL(audioBlob);
         const recordingItem = addRecordingToList(audioUrl);
         
+        // Show loading state
+        const transcriptionDiv = document.createElement('div');
+        transcriptionDiv.className = 'transcription';
+        transcriptionDiv.textContent = 'Transcribing...';
+        recordingItem.appendChild(transcriptionDiv);
+        
         // Transcribe the audio
         const transcribedText = await transcribeAudio(audioBlob);
         if (transcribedText) {
+            transcriptionDiv.textContent = transcribedText;
             sendTranscriptionToTelegram(transcribedText, recordingItem);
+        } else {
+            transcriptionDiv.textContent = 'Transcription failed. Please check your API key and try again.';
+            transcriptionDiv.classList.add('error');
         }
         
         audioChunks = [];
