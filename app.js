@@ -27,6 +27,7 @@ async function transcribeAudio(audioBlob) {
         formData.append('file', audioBlob, 'recording.wav');
         formData.append('model', 'whisper-1');
 
+        console.log('Sending request to OpenAI...');
         const response = await fetch(OPENAI_API_URL, {
             method: 'POST',
             headers: {
@@ -36,13 +37,24 @@ async function transcribeAudio(audioBlob) {
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const errorData = await response.text();
+            console.error('OpenAI API Error:', {
+                status: response.status,
+                statusText: response.statusText,
+                error: errorData
+            });
+            throw new Error(`API Error: ${response.status} - ${errorData}`);
         }
 
         const data = await response.json();
+        console.log('Transcription successful');
         return data.text;
     } catch (error) {
-        console.error('Error transcribing audio:', error);
+        console.error('Detailed transcription error:', {
+            message: error.message,
+            stack: error.stack
+        });
+        alert(`Transcription error: ${error.message}`);
         return null;
     }
 }
