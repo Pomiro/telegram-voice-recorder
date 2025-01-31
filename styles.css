@@ -18,6 +18,20 @@ body {
     margin: 0 auto;
 }
 
+.api-key-container {
+    margin-bottom: 20px;
+}
+
+.api-key-input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--tg-theme-button-color);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--tg-theme-text-color);
+    background-color: var(--tg-theme-bg-color);
+}
+
 .recorder-container {
     display: flex;
     flex-direction: column;
@@ -113,6 +127,33 @@ body {
 
 .recording-item audio {
     flex-grow: 1;
+}
+
+.action-button,
+.send-button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    background-color: var(--tg-theme-button-color);
+    color: var(--tg-theme-button-text-color);
+    cursor: pointer;
+    font-size: 14px;
+    transition: opacity 0.2s;
+}
+
+.action-button:hover,
+.send-button:hover {
+    opacity: 0.9;
+}
+
+.action-button:active,
+.send-button:active {
+    opacity: 0.8;
+}
+
+.send-button:disabled {
+    opacity: 0.6;
+    cursor: default;
 }
 
 @keyframes pulse {

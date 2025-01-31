@@ -4,6 +4,64 @@ let isRecording = false;
 let startTime;
 let timerInterval;
 
+// OpenAI API configuration
+const OPENAI_API_URL = 'https://api.openai.com/v1/audio/transcriptions';
+
+// Function to get API key from input
+function getApiKey() {
+    const apiKey = document.getElementById('apiKeyInput').value.trim();
+    if (!apiKey) {
+        alert('Please enter your OpenAI API key');
+        return null;
+    }
+    return apiKey;
+}
+
+// Function to transcribe audio using OpenAI Whisper API
+async function transcribeAudio(audioBlob) {
+    const apiKey = getApiKey();
+    if (!apiKey) return null;
+
+    try {
+        const formData = new FormData();
+        formData.append('file', audioBlob, 'recording.wav');
+        formData.append('model', 'whisper-1');
+
+        const response = await fetch(OPENAI_API_URL, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.text;
+    } catch (error) {
+        console.error('Error transcribing audio:', error);
+        return null;
+    }
+}
+
+// Function to send transcribed text back to Telegram
+function sendTranscriptionToTelegram(text, recordingItem) {
+    if (text) {
+        const sendButton = document.createElement('button');
+        sendButton.textContent = 'Send to Chat';
+        sendButton.className = 'send-button';
+        sendButton.onclick = () => {
+            webapp.sendData(text);
+            sendButton.disabled = true;
+            sendButton.textContent = 'Sent';
+        };
+        recordingItem.appendChild(sendButton);
+    }
+}
+
 // Initialize Telegram WebApp
 const webapp = window.Telegram.WebApp;
 webapp.ready();
@@ -33,10 +91,17 @@ function setupMediaRecorder(stream) {
         }
     };
 
-    mediaRecorder.onstop = () => {
+    mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
         const audioUrl = URL.createObjectURL(audioBlob);
-        addRecordingToList(audioUrl);
+        const recordingItem = addRecordingToList(audioUrl);
+        
+        // Transcribe the audio
+        const transcribedText = await transcribeAudio(audioBlob);
+        if (transcribedText) {
+            sendTranscriptionToTelegram(transcribedText, recordingItem);
+        }
+        
         audioChunks = [];
     };
 }
@@ -95,6 +160,7 @@ function addRecordingToList(audioUrl) {
 
     const downloadButton = document.createElement('button');
     downloadButton.textContent = 'Save';
+    downloadButton.className = 'action-button';
     downloadButton.onclick = () => {
         const link = document.createElement('a');
         link.href = audioUrl;
@@ -105,6 +171,8 @@ function addRecordingToList(audioUrl) {
     recordingItem.appendChild(audio);
     recordingItem.appendChild(downloadButton);
     recordingsList.insertBefore(recordingItem, recordingsList.firstChild);
+    
+    return recordingItem;
 }
 
 // Function to check if device is mobile
