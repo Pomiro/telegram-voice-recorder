@@ -1,7 +1,21 @@
-// WebView compatibility check
+// Initialize Telegram WebApp first to ensure it's available
+const webapp = window.Telegram.WebApp;
+webapp.ready();
+
+// Device detection
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+// WebView compatibility check with detailed error reporting
 if (!navigator.mediaDevices || !window.MediaRecorder) {
-    alert('Audio recording is not supported in this environment');
-    webapp.showAlert('This feature requires audio recording support');
+    const errorMsg = 'Audio recording is not supported in this environment';
+    console.error('Compatibility check failed:', {
+        hasMediaDevices: !!navigator.mediaDevices,
+        hasMediaRecorder: !!window.MediaRecorder,
+        userAgent: navigator.userAgent,
+        isIOS: isIOS
+    });
+    webapp.showAlert(errorMsg);
+    throw new Error(errorMsg);
 }
 
 let mediaRecorder;
@@ -12,6 +26,16 @@ let timerInterval;
 
 // OpenAI API configuration
 const OPENAI_API_URL = 'https://api.openai.com/v1/audio/transcriptions';
+
+// Error logging helper
+function logError(context, error) {
+    console.error(`Error in ${context}:`, {
+        message: error.message,
+        stack: error.stack,
+        userAgent: navigator.userAgent,
+        isIOS: isIOS
+    });
+}
 
 // Function to get API key from input
 function getApiKey() {
@@ -75,10 +99,6 @@ function sendTranscriptionToTelegram(text, recordingItem) {
     }
 }
 
-// Initialize Telegram WebApp
-const webapp = window.Telegram.WebApp;
-webapp.ready();
-
 const recordButton = document.getElementById('recordButton');
 const timer = document.getElementById('timer');
 const recordingsList = document.getElementById('recordingsList');
@@ -86,11 +106,18 @@ const recordingsList = document.getElementById('recordingsList');
 // Request microphone permission
 async function requestMicrophonePermission() {
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const constraints = {
+            audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true
+            }
+        };
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
         setupMediaRecorder(stream);
     } catch (error) {
-        console.error('Error accessing microphone:', error);
-        alert('Please allow microphone access to use this app');
+        logError('requestMicrophonePermission', error);
+        webapp.showAlert('Please allow microphone access to use this app');
     }
 }
 
@@ -98,10 +125,13 @@ async function requestMicrophonePermission() {
 function setupMediaRecorder(stream) {
     // Try to use the most widely supported format
     let options = {};
-    if (MediaRecorder.isTypeSupported('audio/webm')) {
+    // iOS typically supports mp4 better
+    if (MediaRecorder.isTypeSupported('audio/mp4')) {
+        options.mimeType = 'audio/mp4';
+    } else if (MediaRecorder.isTypeSupported('audio/webm')) {
         options.mimeType = 'audio/webm';
-    } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
-        options.mimeType = 'audio/ogg';
+    } else if (MediaRecorder.isTypeSupported('audio/aac')) {
+        options.mimeType = 'audio/aac';
     }
     
     try {
@@ -128,7 +158,9 @@ function setupMediaRecorder(stream) {
             }
             
             // Use the same MIME type as the MediaRecorder
-            const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+            // For iOS, we need to ensure the blob type is supported
+            const blobType = isIOS ? 'audio/mp4' : (mediaRecorder.mimeType || 'audio/mp4');
+            const audioBlob = new Blob(audioChunks, { type: blobType });
             console.log('Audio blob created:', audioBlob.size, 'bytes');
             
             if (audioBlob.size === 0) {
@@ -147,8 +179,10 @@ function setupMediaRecorder(stream) {
             // Create form data with mp3 extension
             const formData = new FormData();
             // Use the correct file extension based on MIME type
-            const format = (mediaRecorder.mimeType || 'audio/webm').split('/')[1].split(';')[0];
-            formData.append('file', audioBlob, `recording.${format}`);
+            const format = (mediaRecorder.mimeType || 'audio/mp4').split('/')[1].split(';')[0];
+            // For iOS, always use mp4 extension
+            const fileExtension = isIOS ? 'mp4' : format;
+            formData.append('file', audioBlob, `recording.${fileExtension}`);
             formData.append('model', 'whisper-1');
 
             // Log form data contents

@@ -56,8 +56,13 @@ body {
     transition: transform 0.2s;
     user-select: none;
     -webkit-user-select: none;
+    -webkit-touch-callout: none;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
+    /* Prevent iOS double-tap zoom */
+    touch-action: none;
+    /* Prevent iOS text selection */
+    -webkit-touch-callout: none;
 }
 
 /* Larger button on mobile */
@@ -127,6 +132,23 @@ body {
 
 .recording-item audio {
     flex-grow: 1;
+    width: 100%;
+    max-width: 100%;
+    /* iOS audio player styling */
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+/* iOS-specific audio player controls */
+@supports (-webkit-touch-callout: none) {
+    .recording-item audio::-webkit-media-controls-panel {
+        background-color: var(--tg-theme-bg-color);
+    }
+    
+    .recording-item audio::-webkit-media-controls-play-button {
+        background-color: var(--tg-theme-button-color);
+        border-radius: 50%;
+    }
 }
 
 .action-button,
