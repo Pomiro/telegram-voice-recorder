@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Recorder Mini App</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="recorder-container">
+            <button id="recordButton" class="record-btn">
+                <span class="record-icon"></span>
+                <span class="button-text">Hold to Record</span>
+            </button>
+            <div id="timer" class="timer">00:00</div>
+        </div>
+        <div id="recordings" class="recordings">
+            <h3>Your Recordings</h3>
+            <div id="recordingsList"></div>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
