@@ -1,3 +1,9 @@
+// WebView compatibility check
+if (!navigator.mediaDevices || !window.MediaRecorder) {
+    alert('Audio recording is not supported in this environment');
+    webapp.showAlert('This feature requires audio recording support');
+}
+
 let mediaRecorder;
 let audioChunks = [];
 let isRecording = false;
@@ -18,15 +24,11 @@ function getApiKey() {
 }
 
 // Function to transcribe audio using OpenAI Whisper API
-async function transcribeAudio(audioBlob) {
+async function transcribeAudio(audioBlob, formData) {
     const apiKey = getApiKey();
     if (!apiKey) return null;
 
     try {
-        const formData = new FormData();
-        formData.append('file', audioBlob, 'recording.wav');
-        formData.append('model', 'whisper-1');
-
         console.log('Sending request to OpenAI...');
         const response = await fetch(OPENAI_API_URL, {
             method: 'POST',
@@ -54,8 +56,7 @@ async function transcribeAudio(audioBlob) {
             message: error.message,
             stack: error.stack
         });
-        alert(`Transcription error: ${error.message}`);
-        return null;
+        throw error;
     }
 }
 
@@ -95,7 +96,21 @@ async function requestMicrophonePermission() {
 
 // Setup MediaRecorder with the audio stream
 function setupMediaRecorder(stream) {
-    mediaRecorder = new MediaRecorder(stream);
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm; codecs=opus') 
+        ? 'audio/webm; codecs=opus' 
+        : MediaRecorder.isTypeSupported('audio/wav') 
+            ? 'audio/wav'
+            : '';
+
+    const options = mimeType ? { mimeType } : {};
+    
+    try {
+        mediaRecorder = new MediaRecorder(stream, options);
+    } catch (e) {
+        console.error('Error creating MediaRecorder:', e);
+        alert('Error initializing audio recorder');
+        return;
+    }
 
     mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
@@ -104,7 +119,8 @@ function setupMediaRecorder(stream) {
     };
 
     mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+        const mimeType = mediaRecorder.mimeType || 'audio/webm';
+        const audioBlob = new Blob(audioChunks, { type: mimeType });
         const audioUrl = URL.createObjectURL(audioBlob);
         const recordingItem = addRecordingToList(audioUrl);
         
@@ -114,13 +130,28 @@ function setupMediaRecorder(stream) {
         transcriptionDiv.textContent = 'Transcribing...';
         recordingItem.appendChild(transcriptionDiv);
         
-        // Transcribe the audio
-        const transcribedText = await transcribeAudio(audioBlob);
-        if (transcribedText) {
-            transcriptionDiv.textContent = transcribedText;
-            sendTranscriptionToTelegram(transcribedText, recordingItem);
-        } else {
-            transcriptionDiv.textContent = 'Transcription failed. Please check your API key and try again.';
+        try {
+            // Generate appropriate file extension
+            const format = mimeType.split(';')[0].split('/')[1];
+            const fileName = `recording.${format}`;
+
+            // Create form data with correct file name
+            const formData = new FormData();
+            formData.append('file', audioBlob, fileName);
+            formData.append('model', 'whisper-1');
+
+            // Transcribe the audio
+            const transcribedText = await transcribeAudio(audioBlob, formData);
+            if (transcribedText) {
+                transcriptionDiv.textContent = transcribedText;
+                sendTranscriptionToTelegram(transcribedText, recordingItem);
+            } else {
+                transcriptionDiv.textContent = 'Transcription failed. Please check your API key and try again.';
+                transcriptionDiv.classList.add('error');
+            }
+        } catch (error) {
+            console.error('Error processing audio:', error);
+            transcriptionDiv.textContent = `Error: ${error.message}`;
             transcriptionDiv.classList.add('error');
         }
         
@@ -219,7 +250,7 @@ if (!isMobileDevice()) {
     recordButton.addEventListener('touchstart', (e) => {
         e.preventDefault();
         startRecording();
-        recordButton.querySelector('.button-text').textContent = 'Hold to Record';
+        recordButton.querySelector('.button-text').textContent = 'Release to Stop';
     });
 
     recordButton.addEventListener('touchend', (e) => {
