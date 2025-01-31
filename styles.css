@@ -1,208 +1,75 @@
-:root {
-    --tg-theme-bg-color: #ffffff;
-    --tg-theme-text-color: #000000;
-    --tg-theme-button-color: #40a7e3;
-    --tg-theme-button-text-color: #ffffff;
-}
-
+/* Basic styling for the app */
 body {
-    margin: 0;
-    padding: 16px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-    background-color: var(--tg-theme-bg-color);
-    color: var(--tg-theme-text-color);
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    background-color: #f5f5f5;
 }
-
-.container {
-    max-width: 600px;
-    margin: 0 auto;
-}
-
-.api-key-container {
-    margin-bottom: 20px;
-}
-
-.api-key-input {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid var(--tg-theme-button-color);
-    border-radius: 8px;
-    font-size: 14px;
-    color: var(--tg-theme-text-color);
-    background-color: var(--tg-theme-bg-color);
-}
-
-.recorder-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 24px;
-}
-
-.record-btn {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
+#recordButton {
+    padding: 15px 30px;
+    font-size: 16px;
+    background-color: #ff4b2b;
+    color: white;
     border: none;
-    background-color: var(--tg-theme-button-color);
-    color: var(--tg-theme-button-text-color);
+    border-radius: 5px;
     cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    transition: transform 0.2s;
-    user-select: none;
-    -webkit-user-select: none;
-    -webkit-touch-callout: none;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-    /* Prevent iOS double-tap zoom */
-    touch-action: none;
-    /* Prevent iOS text selection */
-    -webkit-touch-callout: none;
+    position: relative;
 }
-
-/* Larger button on mobile */
-@media (max-width: 768px) {
-    .record-btn {
-        width: 140px;
-        height: 140px;
-    }
+#recordButton.recording {
+    background-color: #d9534f;
 }
-
-.record-btn:active {
-    transform: scale(0.95);
-}
-
-.record-btn.recording {
-    background-color: #ff4444;
-    animation: pulse 1.5s infinite;
-}
-
-.record-icon {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background-color: var(--tg-theme-button-text-color);
-}
-
-.recording .record-icon {
-    border-radius: 4px;
-}
-
 .button-text {
-    font-size: 14px;
-    text-align: center;
     pointer-events: none;
 }
-
-@media (max-width: 768px) {
-    .button-text {
-        font-size: 16px;
-        font-weight: 500;
-    }
-}
-
-.timer {
-    font-size: 24px;
-    font-weight: bold;
-}
-
-.recordings {
-    margin-top: 32px;
-}
-
-.recordings h3 {
-    margin: 0 0 16px;
+#timer {
+    margin-top: 10px;
     font-size: 18px;
+    color: #333;
 }
-
+#recordingsList {
+    margin-top: 20px;
+}
 .recording-item {
+    background-color: white;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px;
-    background-color: rgba(0, 0, 0, 0.05);
-    border-radius: 8px;
-    margin-bottom: 8px;
+    justify-content: space-between;
 }
-
-.recording-item audio {
-    flex-grow: 1;
-    width: 100%;
-    max-width: 100%;
-    /* iOS audio player styling */
-    -webkit-appearance: none;
-    appearance: none;
-}
-
-/* iOS-specific audio player controls */
-@supports (-webkit-touch-callout: none) {
-    .recording-item audio::-webkit-media-controls-panel {
-        background-color: var(--tg-theme-bg-color);
-    }
-    
-    .recording-item audio::-webkit-media-controls-play-button {
-        background-color: var(--tg-theme-button-color);
-        border-radius: 50%;
-    }
-}
-
-.action-button,
-.send-button {
-    padding: 8px 16px;
+.action-button {
+    margin-left: 10px;
+    padding: 5px 10px;
+    font-size: 14px;
+    background-color: #5bc0de;
+    color: white;
     border: none;
-    border-radius: 8px;
-    background-color: var(--tg-theme-button-color);
-    color: var(--tg-theme-button-text-color);
+    border-radius: 3px;
     cursor: pointer;
-    font-size: 14px;
-    transition: opacity 0.2s;
 }
-
-.action-button:hover,
-.send-button:hover {
-    opacity: 0.9;
-}
-
-.action-button:active,
-.send-button:active {
-    opacity: 0.8;
-}
-
-.send-button:disabled {
-    opacity: 0.6;
-    cursor: default;
-}
-
 .transcription {
-    width: 100%;
-    margin-top: 8px;
-    padding: 8px;
-    background-color: rgba(0, 0, 0, 0.03);
-    border-radius: 4px;
+    margin-top: 5px;
     font-size: 14px;
-    line-height: 1.4;
-    white-space: pre-wrap;
-    word-break: break-word;
+    color: #555;
 }
-
 .transcription.error {
-    color: #ff4444;
-    background-color: rgba(255, 68, 68, 0.1);
+    color: red;
 }
-
-@keyframes pulse {
-    0% {
-        transform: scale(1);
-    }
-    50% {
-        transform: scale(0.95);
-    }
-    100% {
-        transform: scale(1);
-    }
+#apiKeyContainer {
+    margin-bottom: 20px;
+}
+#apiKeyInput {
+    width: 100%;
+    padding: 10px;
+    font-size: 14px;
+}
+.send-button {
+    padding: 5px 10px;
+    font-size: 14px;
+    background-color: #5cb85c;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    margin-left: 10px;
 }

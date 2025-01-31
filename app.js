@@ -45,9 +45,11 @@ function initializeApp(webapp) {
     let isRecording = false;
     let startTime;
     let timerInterval;
+    let isTranscribing = false; // Prevent multiple transcriptions
 
     // OpenAI API configuration
     const OPENAI_API_URL = 'https://api.openai.com/v1/audio/transcriptions';
+    const TRANSCRIPTION_TIMEOUT = 30000; // 30 seconds
 
     // Error logging helper
     function logError(context, error) {
@@ -69,10 +71,15 @@ function initializeApp(webapp) {
         return apiKey;
     }
 
-    // Function to transcribe audio using OpenAI Whisper API
+    // Function to transcribe audio using OpenAI Whisper API with timeout
     async function transcribeAudio(formData) {
         const apiKey = getApiKey();
         if (!apiKey) return null;
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
+            controller.abort();
+        }, TRANSCRIPTION_TIMEOUT);
 
         try {
             console.log('Sending request to OpenAI...');
@@ -81,8 +88,11 @@ function initializeApp(webapp) {
                 headers: {
                     'Authorization': `Bearer ${apiKey}`
                 },
-                body: formData
+                body: formData,
+                signal: controller.signal
             });
+
+            clearTimeout(timeoutId);
 
             if (!response.ok) {
                 const errorData = await response.text();
@@ -98,6 +108,10 @@ function initializeApp(webapp) {
             console.log('Transcription successful');
             return data.text;
         } catch (error) {
+            if (error.name === 'AbortError') {
+                console.error('Transcription request timed out.');
+                throw new Error('Transcription request timed out. Please try again.');
+            }
             console.error('Detailed transcription error:', {
                 message: error.message,
                 stack: error.stack
@@ -168,6 +182,14 @@ function initializeApp(webapp) {
         };
 
         mediaRecorder.onstop = async () => {
+            if (isTranscribing) {
+                console.warn('Transcription is already in progress.');
+                return;
+            }
+
+            isTranscribing = true;
+
+            let recordingItem = null; // Define outside try-catch
             try {
                 console.log('Recording stopped, processing audio...');
 
@@ -186,7 +208,7 @@ function initializeApp(webapp) {
                 }
 
                 const audioUrl = URL.createObjectURL(audioBlob);
-                const recordingItem = addRecordingToList(audioUrl);
+                recordingItem = addRecordingToList(audioUrl);
 
                 // Show loading state
                 const transcriptionDiv = document.createElement('div');
@@ -218,19 +240,20 @@ function initializeApp(webapp) {
                     throw new Error('No transcription result received');
                 }
             } catch (error) {
-                console.error('Detailed error in onstop handler:', {
-                    message: error.message,
-                    stack: error.stack,
-                    audioChunksLength: audioChunks.length,
-                    totalSize: audioChunks.reduce((size, chunk) => size + chunk.size, 0)
-                });
-                const transcriptionDiv = recordingItem.querySelector('.transcription');
-                if (transcriptionDiv) {
-                    transcriptionDiv.textContent = `Error: ${error.message}`;
-                    transcriptionDiv.classList.add('error');
+                logError('onstop handler', error);
+                if (recordingItem) {
+                    const transcriptionDiv = recordingItem.querySelector('.transcription');
+                    if (transcriptionDiv) {
+                        transcriptionDiv.textContent = `Error: ${error.message}`;
+                        transcriptionDiv.classList.add('error');
+                    }
+                } else {
+                    // If recordingItem is not available, notify the user globally
+                    webapp.showAlert(`Transcription failed: ${error.message}`);
                 }
             } finally {
                 audioChunks = [];
+                isTranscribing = false;
             }
         };
     }

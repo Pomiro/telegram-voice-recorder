@@ -1,31 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="telegram-web-app-permissions" content="microphone">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>Voice Recorder Mini App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
-        <div class="api-key-container">
-            <input type="text" id="apiKeyInput" placeholder="Enter OpenAI API Key" class="api-key-input">
-        </div>
-        <div class="recorder-container">
-            <button id="recordButton" class="record-btn">
-                <span class="record-icon"></span>
-                <span class="button-text">Click to Record</span>
-            </button>
-            <div id="timer" class="timer">00:00</div>
-        </div>
-        <div id="recordings" class="recordings">
-            <h3>Your Recordings</h3>
-            <div id="recordingsList"></div>
-        </div>
+    <div id="apiKeyContainer">
+        <input type="text" id="apiKeyInput" placeholder="Enter your OpenAI API Key" />
     </div>
+
+    <button id="recordButton">
+        <span class="button-text">Click to Record</span>
+    </button>
+    <div id="timer">00:00</div>
+    <div id="recordingsList"></div>
     <script src="app.js"></script>
 </body>
 </html>
