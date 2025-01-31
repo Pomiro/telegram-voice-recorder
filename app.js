@@ -108,19 +108,26 @@ function addRecordingToList(audioUrl) {
 }
 
 // Event listeners for recording button
-recordButton.addEventListener('mousedown', startRecording);
-recordButton.addEventListener('mouseup', stopRecording);
-recordButton.addEventListener('mouseleave', stopRecording);
-
-// Touch events for mobile devices
-recordButton.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    startRecording();
+recordButton.addEventListener('click', () => {
+    if (!isRecording) {
+        startRecording();
+        recordButton.querySelector('.button-text').textContent = 'Click to Stop';
+    } else {
+        stopRecording();
+        recordButton.querySelector('.button-text').textContent = 'Click to Record';
+    }
 });
 
+// Touch events for mobile devices
 recordButton.addEventListener('touchend', (e) => {
     e.preventDefault();
-    stopRecording();
+    if (!isRecording) {
+        startRecording();
+        recordButton.querySelector('.button-text').textContent = 'Click to Stop';
+    } else {
+        stopRecording();
+        recordButton.querySelector('.button-text').textContent = 'Click to Record';
+    }
 });
 
 // Initialize the app
