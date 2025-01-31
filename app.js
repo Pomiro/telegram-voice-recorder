@@ -159,7 +159,7 @@ function setupMediaRecorder(stream) {
             
             // Use the same MIME type as the MediaRecorder
             // For iOS, we need to ensure the blob type is supported
-            const blobType = isIOS ? 'audio/mp4' : (mediaRecorder.mimeType || 'audio/mp4');
+const blobType = isIOS ? 'audio/mp4' : (mediaRecorder.mimeType || 'audio/webm');
             const audioBlob = new Blob(audioChunks, { type: blobType });
             console.log('Audio blob created:', audioBlob.size, 'bytes');
             
@@ -179,7 +179,7 @@ function setupMediaRecorder(stream) {
             // Create form data with mp3 extension
             const formData = new FormData();
             // Use the correct file extension based on MIME type
-            const format = (mediaRecorder.mimeType || 'audio/mp4').split('/')[1].split(';')[0];
+const format = (mediaRecorder.mimeType || 'audio/webm').split('/')[1].split(';')[0];
             // For iOS, always use mp4 extension
             const fileExtension = isIOS ? 'mp4' : format;
             formData.append('file', audioBlob, `recording.${fileExtension}`);
