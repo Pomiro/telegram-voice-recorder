@@ -96,13 +96,13 @@ async function requestMicrophonePermission() {
 
 // Setup MediaRecorder with the audio stream
 function setupMediaRecorder(stream) {
-    const mimeType = MediaRecorder.isTypeSupported('audio/webm; codecs=opus') 
-        ? 'audio/webm; codecs=opus' 
-        : MediaRecorder.isTypeSupported('audio/wav') 
-            ? 'audio/wav'
-            : '';
-
-    const options = mimeType ? { mimeType } : {};
+    // Try to use the most widely supported format
+    let options = {};
+    if (MediaRecorder.isTypeSupported('audio/webm')) {
+        options.mimeType = 'audio/webm';
+    } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
+        options.mimeType = 'audio/ogg';
+    }
     
     try {
         mediaRecorder = new MediaRecorder(stream, options);
@@ -119,43 +119,69 @@ function setupMediaRecorder(stream) {
     };
 
     mediaRecorder.onstop = async () => {
-        const mimeType = mediaRecorder.mimeType || 'audio/webm';
-        const audioBlob = new Blob(audioChunks, { type: mimeType });
-        const audioUrl = URL.createObjectURL(audioBlob);
-        const recordingItem = addRecordingToList(audioUrl);
-        
-        // Show loading state
-        const transcriptionDiv = document.createElement('div');
-        transcriptionDiv.className = 'transcription';
-        transcriptionDiv.textContent = 'Transcribing...';
-        recordingItem.appendChild(transcriptionDiv);
-        
         try {
-            // Generate appropriate file extension
-            const format = mimeType.split(';')[0].split('/')[1];
-            const fileName = `recording.${format}`;
+            console.log('Recording stopped, processing audio...');
+            
+            // Validate audio chunks
+            if (!audioChunks.length) {
+                throw new Error('No audio data recorded');
+            }
+            
+            // Use the same MIME type as the MediaRecorder
+            const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+            console.log('Audio blob created:', audioBlob.size, 'bytes');
+            
+            if (audioBlob.size === 0) {
+                throw new Error('Audio recording is empty');
+            }
+            
+            const audioUrl = URL.createObjectURL(audioBlob);
+            const recordingItem = addRecordingToList(audioUrl);
+            
+            // Show loading state
+            const transcriptionDiv = document.createElement('div');
+            transcriptionDiv.className = 'transcription';
+            transcriptionDiv.textContent = 'Transcribing...';
+            recordingItem.appendChild(transcriptionDiv);
 
-            // Create form data with correct file name
+            // Create form data with mp3 extension
             const formData = new FormData();
-            formData.append('file', audioBlob, fileName);
+            // Use the correct file extension based on MIME type
+            const format = (mediaRecorder.mimeType || 'audio/webm').split('/')[1].split(';')[0];
+            formData.append('file', audioBlob, `recording.${format}`);
             formData.append('model', 'whisper-1');
+
+            // Log form data contents
+            console.log('Form data prepared:', {
+                hasFile: formData.has('file'),
+                hasModel: formData.has('model')
+            });
 
             // Transcribe the audio
             const transcribedText = await transcribeAudio(audioBlob, formData);
+            console.log('Transcription result:', transcribedText);
+            
             if (transcribedText) {
                 transcriptionDiv.textContent = transcribedText;
                 sendTranscriptionToTelegram(transcribedText, recordingItem);
             } else {
-                transcriptionDiv.textContent = 'Transcription failed. Please check your API key and try again.';
-                transcriptionDiv.classList.add('error');
+                throw new Error('No transcription result received');
             }
         } catch (error) {
-            console.error('Error processing audio:', error);
-            transcriptionDiv.textContent = `Error: ${error.message}`;
-            transcriptionDiv.classList.add('error');
+            console.error('Detailed error in onstop handler:', {
+                message: error.message,
+                stack: error.stack,
+                audioChunksLength: audioChunks.length,
+                totalSize: audioChunks.reduce((size, chunk) => size + chunk.size, 0)
+            });
+            const transcriptionDiv = document.querySelector('.transcription');
+            if (transcriptionDiv) {
+                transcriptionDiv.textContent = `Error: ${error.message}`;
+                transcriptionDiv.classList.add('error');
+            }
+        } finally {
+            audioChunks = [];
         }
-        
-        audioChunks = [];
     };
 }
 
