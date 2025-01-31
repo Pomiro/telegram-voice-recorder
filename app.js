@@ -107,28 +107,46 @@ function addRecordingToList(audioUrl) {
     recordingsList.insertBefore(recordingItem, recordingsList.firstChild);
 }
 
-// Event listeners for recording button
-recordButton.addEventListener('click', () => {
-    if (!isRecording) {
-        startRecording();
-        recordButton.querySelector('.button-text').textContent = 'Click to Stop';
-    } else {
-        stopRecording();
-        recordButton.querySelector('.button-text').textContent = 'Click to Record';
-    }
-});
+// Function to check if device is mobile
+function isMobileDevice() {
+    return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+}
 
-// Touch events for mobile devices
-recordButton.addEventListener('touchend', (e) => {
-    e.preventDefault();
-    if (!isRecording) {
+// Event listeners for recording button
+if (!isMobileDevice()) {
+    // Desktop click behavior - toggle recording
+    recordButton.addEventListener('click', () => {
+        if (!isRecording) {
+            startRecording();
+            recordButton.querySelector('.button-text').textContent = 'Click to Stop';
+        } else {
+            stopRecording();
+            recordButton.querySelector('.button-text').textContent = 'Click to Record';
+        }
+    });
+} else {
+    // Mobile touch behavior - press and hold
+    recordButton.addEventListener('touchstart', (e) => {
+        e.preventDefault();
         startRecording();
-        recordButton.querySelector('.button-text').textContent = 'Click to Stop';
-    } else {
+        recordButton.querySelector('.button-text').textContent = 'Hold to Record';
+    });
+
+    recordButton.addEventListener('touchend', (e) => {
+        e.preventDefault();
         stopRecording();
-        recordButton.querySelector('.button-text').textContent = 'Click to Record';
-    }
-});
+        recordButton.querySelector('.button-text').textContent = 'Hold to Record';
+    });
+
+    // Handle touch cancel (e.g., if user slides finger off button)
+    recordButton.addEventListener('touchcancel', (e) => {
+        e.preventDefault();
+        if (isRecording) {
+            stopRecording();
+            recordButton.querySelector('.button-text').textContent = 'Hold to Record';
+        }
+    });
+}
 
 // Initialize the app
 requestMicrophonePermission();

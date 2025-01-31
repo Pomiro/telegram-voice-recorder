@@ -40,6 +40,18 @@ body {
     justify-content: center;
     gap: 8px;
     transition: transform 0.2s;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+/* Larger button on mobile */
+@media (max-width: 768px) {
+    .record-btn {
+        width: 140px;
+        height: 140px;
+    }
 }
 
 .record-btn:active {
@@ -65,6 +77,14 @@ body {
 .button-text {
     font-size: 14px;
     text-align: center;
+    pointer-events: none;
+}
+
+@media (max-width: 768px) {
+    .button-text {
+        font-size: 16px;
+        font-weight: 500;
+    }
 }
 
 .timer {
